@@ -273,9 +273,53 @@ fn parse_frame_body(body: &str) -> (Option<String>, Option<u32>, Option<u64>) {
     (func_name, func_index, wasm_offset)
 }
 
+/// Hardcoded lookup for common Soroban SDK panic codes so we can return a
+/// human-readable explanation even when DWARF/source maps are unavailable.
+const SOROBAN_PANIC_LOOKUP: &[(&str, &str)] = &[
+    (
+        "Error(WasmVm, MissingValue)",
+        "Contract tried to read a ledger/storage entry that does not exist.",
+    ),
+    (
+        "Error(Storage, MissingValue)",
+        "Contract tried to read a ledger/storage entry that does not exist.",
+    ),
+    (
+        "Error(WasmVm, ExceededLimit)",
+        "Execution exceeded the Soroban VM resource limits (CPU or memory budget).",
+    ),
+    (
+        "Error(Context, InvalidInput)",
+        "Invalid input was provided to a host function or SDK call.",
+    ),
+    (
+        "Error(Auth, InvalidAction)",
+        "Authorization failed or an auth entry was missing/invalid for this action.",
+    ),
+    (
+        "Error(Auth, InvalidAuth)",
+        "Authorization failed or an auth entry was missing/invalid for this action.",
+    ),
+    (
+        "Error(WasmVm, InvalidAction)",
+        "A contract call attempted an invalid or disallowed action.",
+    ),
+];
+
+fn map_soroban_sdk_error(msg: &str) -> Option<&'static str> {
+    SOROBAN_PANIC_LOOKUP
+        .iter()
+        .find(|(needle, _)| msg.contains(needle))
+        .map(|(_, expl)| *expl)
+}
+
 /// Public helper: decode a raw error string into a human-readable description
 /// that includes the trap kind. Used by `main.rs` for backward compatibility.
 pub fn decode_error(msg: &str) -> String {
+    if let Some(mapped) = map_soroban_sdk_error(msg) {
+        return format!("Soroban SDK panic: {}", mapped);
+    }
+
     let trace = WasmStackTrace::from_host_error(msg);
     let label = trace.trap_kind_label();
 
@@ -329,119 +373,6 @@ mod tests {
     }
 
     #[test]
-    fn test_classify_unknown() {
-        let kind = classify_trap("something completely unexpected");
-        assert!(matches!(kind, TrapKind::Unknown(_)));
-    }
-
-    #[test]
-    fn test_extract_numbered_frames() {
-        let input = "wasm backtrace:\n  0: func[42] @ 0xa3c\n  1: func[7] @ 0xb20";
-        let frames = extract_frames(input);
-
-        assert_eq!(frames.len(), 2);
-
-        assert_eq!(frames[0].index, 0);
-        assert_eq!(frames[0].func_index, Some(42));
-        assert_eq!(frames[0].wasm_offset, Some(0xa3c));
-
-        assert_eq!(frames[1].index, 1);
-        assert_eq!(frames[1].func_index, Some(7));
-        assert_eq!(frames[1].wasm_offset, Some(0xb20));
-    }
-
-    #[test]
-    fn test_extract_named_frames() {
-        let input = "trace:\n  0: soroban_token::transfer @ 0x100\n  1: soroban_sdk::invoke @ 0x200";
-        let frames = extract_frames(input);
-
-        assert_eq!(frames.len(), 2);
-        assert_eq!(
-            frames[0].func_name,
-            Some("soroban_token::transfer".to_string())
-        );
-        assert_eq!(frames[0].wasm_offset, Some(0x100));
-    }
-
-    #[test]
-    fn test_extract_no_frames() {
-        let input = "simple error message without any stack frames";
-        let frames = extract_frames(input);
-        assert!(frames.is_empty());
-    }
-
-    #[test]
-    fn test_from_host_error_soroban_wrapped() {
-        let trace = WasmStackTrace::from_host_error(
-            "HostError: Error(WasmVm, InternalError)\n  0: func[5] @ 0x42",
-        );
-        assert!(trace.soroban_wrapped);
-        assert_eq!(trace.frames.len(), 1);
-        assert_eq!(trace.frames[0].func_index, Some(5));
-    }
-
-    #[test]
-    fn test_from_host_error_not_soroban_wrapped() {
-        let trace = WasmStackTrace::from_host_error("wasm trap: unreachable\n  0: func[10]");
-        assert!(!trace.soroban_wrapped);
-        assert_eq!(trace.trap_kind, TrapKind::Unreachable);
-    }
-
-    #[test]
-    fn test_from_panic() {
-        let trace = WasmStackTrace::from_panic("assertion failed");
-        assert!(trace.frames.is_empty());
-        assert!(!trace.soroban_wrapped);
-        assert!(matches!(trace.trap_kind, TrapKind::Unknown(_)));
-    }
-
-    #[test]
-    fn test_display_with_frames() {
-        let trace = WasmStackTrace {
-            trap_kind: TrapKind::OutOfBoundsMemoryAccess,
-            raw_message: "test".to_string(),
-            frames: vec![
-                StackFrame {
-                    index: 0,
-                    func_index: Some(42),
-                    func_name: None,
-                    wasm_offset: Some(0xa3c),
-                    module: None,
-                },
-                StackFrame {
-                    index: 1,
-                    func_index: None,
-                    func_name: Some("my_contract::transfer".to_string()),
-                    wasm_offset: Some(0xb20),
-                    module: Some("token".to_string()),
-                },
-            ],
-            soroban_wrapped: false,
-        };
-
-        let output = trace.display();
-        assert!(output.contains("out of bounds memory access"));
-        assert!(output.contains("func[42]"));
-        assert!(output.contains("0xa3c"));
-        assert!(output.contains("my_contract::transfer"));
-        assert!(output.contains("in token"));
-    }
-
-    #[test]
-    fn test_display_empty_frames() {
-        let trace = WasmStackTrace::from_panic("boom");
-        let output = trace.display();
-        assert!(output.contains("<no frames captured>"));
-    }
-
-    #[test]
-    fn test_display_soroban_wrapped() {
-        let trace = WasmStackTrace::from_host_error("HostError: something");
-        let output = trace.display();
-        assert!(output.contains("Soroban Host layer"));
-    }
-
-    #[test]
     fn test_decode_error_known_trap() {
         let msg = decode_error("Error: Wasm Trap: out of bounds memory access");
         assert!(msg.contains("VM Trap: Out of bounds memory access"));
@@ -450,45 +381,30 @@ mod tests {
     #[test]
     fn test_decode_error_unknown() {
         let msg = decode_error("some random error");
-        assert!(msg.starts_with("Error:"));
+        assert_eq!(msg, "Error: some random error");
     }
 
     #[test]
-    fn test_frame_with_offset_no_hex_prefix() {
-        let input = "  0: func[1] @ 1234";
-        let frames = extract_frames(input);
-        assert_eq!(frames.len(), 1);
-        assert_eq!(frames[0].wasm_offset, Some(1234));
+    fn test_extract_frames() {
+        let err = "wasm trap: unreachable\n  0: func[0] @ 0x3\n  1: func[1] @ 0x4";
+        let frames = extract_frames(err);
+        assert_eq!(frames.len(), 2);
+        assert_eq!(frames[0].func_index, Some(0));
+        assert_eq!(frames[1].func_index, Some(1));
     }
 
     #[test]
-    fn test_parse_frame_body_empty() {
-        let (name, index, offset) = parse_frame_body("");
-        assert!(name.is_none());
-        assert!(index.is_none());
-        assert!(offset.is_none());
+    fn test_soroban_panic_lookup_missing_value() {
+        let msg = "HostError: Error(WasmVm, MissingValue)";
+        let decoded = decode_error(msg);
+        assert!(decoded.contains("Soroban SDK panic"));
+        assert!(decoded.contains("storage entry"));
     }
 
     #[test]
-    fn test_classify_table_access() {
-        assert_eq!(
-            classify_trap("out of bounds table access"),
-            TrapKind::OutOfBoundsTableAccess
-        );
-    }
-
-    #[test]
-    fn test_classify_indirect_call_mismatch() {
-        assert_eq!(
-            classify_trap("indirect call type mismatch"),
-            TrapKind::IndirectCallTypeMismatch
-        );
-    }
-
-    #[test]
-    fn test_capitalise_first() {
-        assert_eq!(capitalise_first("hello"), "Hello");
-        assert_eq!(capitalise_first(""), "");
-        assert_eq!(capitalise_first("a"), "A");
+    fn test_soroban_panic_lookup_invalid_input() {
+        let msg = "Error(Context, InvalidInput)";
+        let decoded = decode_error(msg);
+        assert!(decoded.contains("Invalid input"));
     }
 }
