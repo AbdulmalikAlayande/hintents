@@ -67,6 +67,7 @@ var (
 	mockGasPriceFlag    uint64
 	asyncFlag           bool
 	asyncTimeoutFlag    int
+	exportSVGFlag       string
 )
 
 // DebugCommand holds dependencies for the debug command
@@ -577,6 +578,21 @@ Local WASM Replay Mode:
 				diffResults(primaryResult, compareResult, networkFlag, compareNetworkFlag)
 			}
 			lastSimResp = simResp
+
+			if exportSVGFlag != "" && simResp != nil && len(simResp.DiagnosticEvents) > 0 {
+				callTree, err := decoder.DecodeDiagnosticEvents(simResp.DiagnosticEvents)
+				if err != nil {
+					fmt.Printf("%s Error building call tree for SVG: %v\n", visualizer.Symbol("error"), err)
+				} else {
+					svg := visualizer.GenerateCallGraphSVG(callTree)
+					err := os.WriteFile(exportSVGFlag, []byte(svg), 0644)
+					if err != nil {
+						fmt.Printf("%s Error saving SVG: %v\n", visualizer.Symbol("error"), err)
+					} else {
+						fmt.Printf("%s Call graph exported to: %s\n", visualizer.Symbol("success"), exportSVGFlag)
+					}
+				}
+			}
 		}
 
 		if lastSimResp == nil {
@@ -1144,6 +1160,7 @@ func init() {
 	debugCmd.Flags().StringVar(&themeFlag, "theme", "", "Color theme override (dark, light, none)")
 	debugCmd.Flags().Int64Var(&mockTimeFlag, "mock-time", 0, "Override ledger timestamp for simulation (Unix seconds)")
 	debugCmd.Flags().Uint32Var(&protocolVersionFlag, "protocol-version", 0, "Override protocol version for simulation")
+	debugCmd.Flags().StringVar(&exportSVGFlag, "export-svg", "", "Export call graph as SVG to specified file")
 
 	rootCmd.AddCommand(debugCmd)
 }

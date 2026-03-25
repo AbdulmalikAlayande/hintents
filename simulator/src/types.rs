@@ -88,6 +88,10 @@ pub struct DiagnosticEvent {
     pub in_successful_contract_call: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wasm_instruction: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cpu: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mem: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]

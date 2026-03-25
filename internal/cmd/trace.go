@@ -18,6 +18,7 @@ var (
 	traceThemeFlag string
 	tracePrint     bool
 	traceNoColor   bool
+	traceExportSVG string
 )
 
 var traceCmd = &cobra.Command{
@@ -83,6 +84,23 @@ Example:
 			return nil
 		}
 
+		// --export-svg: generate a call graph SVG and exit
+		if traceExportSVG != "" {
+			if len(executionTrace.DiagnosticEvents) == 0 {
+				return errors.WrapValidationError("no diagnostic events found in trace; call graph with gas cannot be generated")
+			}
+			callTree, err := decoder.DecodeDiagnosticEvents(executionTrace.DiagnosticEvents)
+			if err != nil {
+				return errors.WrapValidationError(fmt.Sprintf("failed to decode call tree: %v", err))
+			}
+			svg := visualizer.GenerateCallGraphSVG(callTree)
+			if err := os.WriteFile(traceExportSVG, []byte(svg), 0644); err != nil {
+				return errors.WrapValidationError(fmt.Sprintf("failed to save SVG: %v", err))
+			}
+			fmt.Printf("%s Call graph exported to: %s\n", visualizer.Symbol("success"), traceExportSVG)
+			return nil
+		}
+
 		// Start interactive viewer
 		viewer := trace.NewInteractiveViewer(executionTrace)
 		return viewer.Start()
@@ -94,6 +112,7 @@ func init() {
 	traceCmd.Flags().StringVar(&traceThemeFlag, "theme", "", "Color theme (default, deuteranopia, protanopia, tritanopia, high-contrast)")
 	traceCmd.Flags().BoolVar(&tracePrint, "print", false, "Print a rich ASCII tree report and exit (non-interactive)")
 	traceCmd.Flags().BoolVar(&traceNoColor, "no-color", false, "Disable ANSI colour output (also honoured via NO_COLOR env var)")
+	traceCmd.Flags().StringVar(&traceExportSVG, "export-svg", "", "Export call graph as SVG to specified file")
 
 	_ = traceCmd.RegisterFlagCompletionFunc("theme", completeThemeFlag)
 
