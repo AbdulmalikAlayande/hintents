@@ -287,6 +287,7 @@ func (c *Client) getLedgerEntriesAttempt(ctx context.Context, keysToFetch []stri
 		)
 		// Record failed remote node response
 		metrics.RecordRemoteNodeResponse(targetURL, string(c.Network), false, time.Since(startTime))
+		c.recordTelemetry(targetURL, time.Since(startTime), false)
 
 		return nil, err
 	}
@@ -320,6 +321,7 @@ func (c *Client) getLedgerEntriesAttempt(ctx context.Context, keysToFetch []stri
 		logger.Logger.Error("Soroban getLedgerEntries request failed", "url", targetURL, "error", err)
 		// Record failed remote node response
 		metrics.RecordRemoteNodeResponse(targetURL, string(c.Network), false, duration)
+		c.recordTelemetry(targetURL, duration, false)
 		return nil, errors.WrapRPCConnectionFailed(err)
 	}
 	defer resp.Body.Close()
@@ -327,6 +329,7 @@ func (c *Client) getLedgerEntriesAttempt(ctx context.Context, keysToFetch []stri
 	if resp.StatusCode == http.StatusRequestEntityTooLarge {
 		// Record failed remote node response
 		metrics.RecordRemoteNodeResponse(targetURL, string(c.Network), false, duration)
+		c.recordTelemetry(targetURL, duration, false)
 		return nil, errors.WrapRPCResponseTooLarge(targetURL)
 	}
 
@@ -334,6 +337,7 @@ func (c *Client) getLedgerEntriesAttempt(ctx context.Context, keysToFetch []stri
 	if err != nil {
 		// Record failed remote node response
 		metrics.RecordRemoteNodeResponse(targetURL, string(c.Network), false, duration)
+		c.recordTelemetry(targetURL, duration, false)
 		return nil, errors.WrapUnmarshalFailed(err, "body read error")
 	}
 
@@ -342,6 +346,7 @@ func (c *Client) getLedgerEntriesAttempt(ctx context.Context, keysToFetch []stri
 		logger.Logger.Error("Soroban getLedgerEntries response unmarshal failed", "url", targetURL, "error", err)
 		// Record failed remote node response
 		metrics.RecordRemoteNodeResponse(targetURL, string(c.Network), false, duration)
+		c.recordTelemetry(targetURL, duration, false)
 		return nil, errors.WrapUnmarshalFailed(err, string(respBytes))
 	}
 
@@ -349,11 +354,13 @@ func (c *Client) getLedgerEntriesAttempt(ctx context.Context, keysToFetch []stri
 		logger.Logger.Error("Soroban getLedgerEntries RPC error", "url", targetURL, "code", rpcResp.Error.Code, "message", rpcResp.Error.Message)
 		// Record failed remote node response
 		metrics.RecordRemoteNodeResponse(targetURL, string(c.Network), false, duration)
+		c.recordTelemetry(targetURL, duration, false)
 		return nil, errors.WrapSorobanError(targetURL, rpcResp.Error.Message, rpcResp.Error.Code)
 	}
 
 	// Record successful remote node response
 	metrics.RecordRemoteNodeResponse(targetURL, string(c.Network), true, duration)
+	c.recordTelemetry(targetURL, duration, true)
 
 	entries = make(map[string]string)
 	fetchedCount := 0
@@ -558,10 +565,12 @@ func (c *Client) getHealthAttempt(ctx context.Context) (healthResp *GetHealthRes
 		timer.Stop(err)
 	}()
 
+	startTime := time.Now()
 	logger.Logger.Debug("Checking Soroban RPC health", "url", targetURL)
 
 	// Fail fast if circuit breaker is open for this Soroban endpoint.
 	if !c.isHealthy(targetURL) {
+		c.recordTelemetry(targetURL, time.Since(startTime), false)
 		return nil, errors.NewRPCError(errors.CodeRPCConnectionFailed,
 			fmt.Errorf("circuit breaker open for %s", targetURL),
 		)
@@ -580,13 +589,16 @@ func (c *Client) getHealthAttempt(ctx context.Context) (healthResp *GetHealthRes
 
 	req, err := http.NewRequestWithContext(ctx, "POST", targetURL, bytes.NewBuffer(bodyBytes))
 	if err != nil {
+		c.recordTelemetry(targetURL, time.Since(startTime), false)
 		return nil, errors.NewRPCError(errors.CodeRPCConnectionFailed, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.getHTTPClient().Do(req)
+	duration := time.Since(startTime)
 	if err != nil {
 		logger.Logger.Error("Soroban getHealth request failed", "url", targetURL, "error", err)
+		c.recordTelemetry(targetURL, duration, false)
 		return nil, errors.NewRPCError(errors.CodeRPCConnectionFailed, err)
 	}
 	defer resp.Body.Close()
@@ -594,20 +606,24 @@ func (c *Client) getHealthAttempt(ctx context.Context) (healthResp *GetHealthRes
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Logger.Error("Soroban getHealth response read failed", "url", targetURL, "error", err)
+		c.recordTelemetry(targetURL, duration, false)
 		return nil, errors.NewRPCError(errors.CodeRPCUnmarshalFailed, err)
 	}
 
 	var rpcResp GetHealthResponse
 	if err := json.Unmarshal(respBytes, &rpcResp); err != nil {
 		logger.Logger.Error("Soroban getHealth unmarshal failed", "url", targetURL, "error", err)
+		c.recordTelemetry(targetURL, duration, false)
 		return nil, errors.NewRPCError(errors.CodeRPCUnmarshalFailed, err)
 	}
 
 	if rpcResp.Error != nil {
 		logger.Logger.Error("Soroban getHealth RPC error", "url", targetURL, "code", rpcResp.Error.Code, "message", rpcResp.Error.Message)
+		c.recordTelemetry(targetURL, duration, false)
 		return nil, errors.NewRPCError(errors.CodeRPCError, fmt.Errorf("rpc error from %s: %s (code %d)", targetURL, rpcResp.Error.Message, rpcResp.Error.Code))
 	}
 
+	c.recordTelemetry(targetURL, duration, true)
 	logger.Logger.Debug("Soroban RPC health check successful", "url", targetURL, "status", rpcResp.Result.Status)
 	return &rpcResp, nil
 }

@@ -98,7 +98,8 @@ type Client struct {
 	// rotateCount tracks how many times rotateURL has successfully switched
 	// the active provider.  This is useful for metrics/observability when the
 	// client is operating in a multi‑URL failover configuration.
-	rotateCount int
+	rotateCount     int
+	healthCollector *HealthCollector
 }
 
 // NewClientDefault creates a new RPC client with sensible defaults
@@ -142,6 +143,39 @@ func (c *Client) startMethodTimer(ctx context.Context, method string, attributes
 	return c.methodTelemetry.StartMethodTimer(ctx, method, attributes)
 }
 
+// GetHealthReport returns a snapshot of health telemetry for all known RPC nodes.
+func (c *Client) GetHealthReport() *HealthReport {
+	if c.healthCollector == nil {
+		return &HealthReport{
+			Nodes:       []NodeHealthStats{},
+			GeneratedAt: time.Now(),
+			Network:     c.GetNetworkName(),
+		}
+	}
+
+	stats := c.healthCollector.GetAllStats()
+
+	// Update circuit breaker state from the client's failure tracking
+	c.mu.RLock()
+	for i := range stats {
+		stats[i].CircuitOpen = !c.isHealthyLocked(stats[i].URL)
+	}
+	c.mu.RUnlock()
+
+	return &HealthReport{
+		Nodes:       stats,
+		GeneratedAt: time.Now(),
+		Network:     c.GetNetworkName(),
+	}
+}
+
+// recordTelemetry records request telemetry if the health collector is available.
+func (c *Client) recordTelemetry(url string, latency time.Duration, success bool) {
+	if c.healthCollector != nil {
+		c.healthCollector.RecordRequest(url, latency, success)
+	}
+}
+
 // NewCustomClient creates a new RPC client for a custom/private network
 // Deprecated: Use NewClient with WithNetworkConfig instead
 func NewCustomClient(config NetworkConfig) (*Client, error) {
@@ -161,12 +195,13 @@ func NewCustomClient(config NetworkConfig) (*Client, error) {
 	}
 
 	return &Client{
-		Horizon:      horizonClient,
-		Network:      "custom",
-		SorobanURL:   sorobanURL,
-		Config:       config,
-		CacheEnabled: true,
-		httpClient:   httpClient,
+		Horizon:         horizonClient,
+		Network:         "custom",
+		SorobanURL:      sorobanURL,
+		Config:          config,
+		CacheEnabled:    true,
+		httpClient:      httpClient,
+		healthCollector: NewHealthCollector(),
 	}, nil
 }
 
@@ -240,6 +275,7 @@ func (c *Client) getTransactionAttempt(ctx context.Context, hash string) (txResp
 		logger.Logger.Error("Failed to fetch transaction", "hash", hash, "error", err, "url", c.HorizonURL)
 		// Record failed remote node response
 		metrics.RecordRemoteNodeResponse(c.HorizonURL, string(c.Network), false, duration)
+		c.recordTelemetry(c.HorizonURL, duration, false)
 
 		// Check if it's a 404 (Transaction Not Found)
 		if hErr, ok := err.(*horizonclient.Error); ok && hErr.Problem.Status == 404 {
@@ -251,6 +287,7 @@ func (c *Client) getTransactionAttempt(ctx context.Context, hash string) (txResp
 
 	// Record successful remote node response
 	metrics.RecordRemoteNodeResponse(c.HorizonURL, string(c.Network), true, duration)
+	c.recordTelemetry(c.HorizonURL, duration, true)
 
 	span.SetAttributes(
 		attribute.Int("envelope.size_bytes", len(tx.EnvelopeXdr)),
