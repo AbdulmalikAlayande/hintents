@@ -275,5 +275,6 @@ func (b *clientBuilder) build() (*Client, error) {
 		failures:        make(map[string]int),
 		lastFailure:     make(map[string]time.Time),
 		middlewares:     b.middlewares,
+		healthCollector: NewHealthCollector(),
 	}, nil
 }

@@ -161,12 +161,13 @@ func NewCustomClient(config NetworkConfig) (*Client, error) {
 	}
 
 	return &Client{
-		Horizon:      horizonClient,
-		Network:      "custom",
-		SorobanURL:   sorobanURL,
-		Config:       config,
-		CacheEnabled: true,
-		httpClient:   httpClient,
+		Horizon:         horizonClient,
+		Network:         "custom",
+		SorobanURL:      sorobanURL,
+		Config:          config,
+		CacheEnabled:    true,
+		httpClient:      httpClient,
+		healthCollector: NewHealthCollector(),
 	}, nil
 }
 
@@ -229,6 +230,7 @@ func (c *Client) getTransactionAttempt(ctx context.Context, hash string) (txResp
 		span.RecordError(err)
 		// Record failed remote node response
 		metrics.RecordRemoteNodeResponse(c.HorizonURL, string(c.Network), false, time.Since(startTime))
+		c.recordTelemetry(c.HorizonURL, time.Since(startTime), false)
 		return nil, errors.WrapRPCConnectionFailed(err)
 	}
 
@@ -243,14 +245,18 @@ func (c *Client) getTransactionAttempt(ctx context.Context, hash string) (txResp
 
 		// Check if it's a 404 (Transaction Not Found)
 		if hErr, ok := err.(*horizonclient.Error); ok && hErr.Problem.Status == 404 {
+			c.recordTelemetry(c.HorizonURL, duration, true)
 			return nil, errors.WrapTransactionNotFound(err)
 		}
+
+		c.recordTelemetry(c.HorizonURL, duration, false)
 
 		return nil, errors.WrapRPCConnectionFailed(err)
 	}
 
 	// Record successful remote node response
 	metrics.RecordRemoteNodeResponse(c.HorizonURL, string(c.Network), true, duration)
+	c.recordTelemetry(c.HorizonURL, duration, true)
 
 	span.SetAttributes(
 		attribute.Int("envelope.size_bytes", len(tx.EnvelopeXdr)),
