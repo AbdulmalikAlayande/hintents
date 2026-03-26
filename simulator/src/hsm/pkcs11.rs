@@ -178,7 +178,7 @@ impl Pkcs11Signer {
                 return Err(SignerError::Pkcs11(format!("Failed to get slot count: 0x{:x}", result)));
             }
 
-            let mut slots = vec![0u64; slot_count as usize];
+            let mut slots = vec![0 as c_ulong; slot_count as usize];
             let result = (functions.C_GetSlotList)(true, slots.as_mut_ptr(), &mut slot_count);
             if result != CKR_OK {
                 return Err(SignerError::Pkcs11(format!("Failed to get slot list: 0x{:x}", result)));
@@ -420,7 +420,7 @@ impl Signer for Pkcs11Signer {
             let key_handle = self.find_private_key(&functions, session)?;
 
             // Initialize signing
-            let mechanism = if self.algorithm == "secp256k1" {
+            let mut mechanism = if self.algorithm == "secp256k1" {
                 CK_MECHANISM {
                     mechanism: CKM_ECDSA,
                     p_parameter: ptr::null_mut(),

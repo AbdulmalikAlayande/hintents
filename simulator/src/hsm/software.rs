@@ -57,8 +57,10 @@ impl SoftwareSigner {
         let signing_key = SigningKey::generate(&mut csprng);
         
         let public_key = signing_key.verifying_key();
+        use ed25519_dalek::pkcs8::EncodePrivateKey;
         let pem_data = signing_key.to_pkcs8_pem(Default::default())
-            .map_err(|e| SignerError::Crypto(format!("Failed to serialize private key: {}", e)))?;
+            .map_err(|e| SignerError::Crypto(format!("Failed to serialize private key: {}", e)))?
+            .to_string();
 
         let signer = Self {
             signing_key,
@@ -69,8 +71,8 @@ impl SoftwareSigner {
     }
 
     /// Get the verifying key
-    pub fn verifying_key(&self) -> &VerifyingKey {
-        &self.signing_key.verifying_key()
+    pub fn verifying_key(&self) -> VerifyingKey {
+        self.signing_key.verifying_key()
     }
 }
 
@@ -87,12 +89,11 @@ impl Signer for SoftwareSigner {
 
     async fn public_key(&self) -> Result<PublicKey, SignerError> {
         let verifying_key = self.signing_key.verifying_key();
-        let spki_bytes = verifying_key.to_public_key_der()
-            .map_err(|e| SignerError::Crypto(format!("Failed to serialize public key: {}", e)))?;
+        let spki_bytes = verifying_key.to_bytes().to_vec();
 
         Ok(PublicKey {
             algorithm: self.algorithm.clone(),
-            spki_bytes: spki_bytes.as_bytes().to_vec(),
+            spki_bytes,
         })
     }
 
@@ -162,8 +163,10 @@ impl Secp256k1SoftwareSigner {
         let mut csprng = rand::rngs::OsRng;
         let signing_key = k256::ecdsa::SigningKey::random(&mut csprng);
         
-        let pem_data = signing_key.to_pkcs8_pem(k256::pkcs8::LineEnding::LF)
-            .map_err(|e| SignerError::Crypto(format!("Failed to serialize private key: {}", e)))?;
+        use k256::pkcs8::EncodePrivateKey;
+        let pem_data = signing_key.to_pkcs8_pem(Default::default())
+            .map_err(|e| SignerError::Crypto(format!("Failed to serialize private key: {}", e)))?
+            .to_string();
 
         let signer = Self {
             signing_key,
@@ -187,7 +190,7 @@ impl Signer for Secp256k1SoftwareSigner {
         let signature: k256::ecdsa::Signature = self.signing_key
             .sign(data);
 
-        
+
         Ok(Signature {
             algorithm: self.algorithm.clone(),
             bytes: signature.to_bytes().to_vec(),
@@ -195,13 +198,13 @@ impl Signer for Secp256k1SoftwareSigner {
     }
 
     async fn public_key(&self) -> Result<PublicKey, SignerError> {
+        use k256::elliptic_curve::sec1::ToEncodedPoint;
         let verifying_key = self.signing_key.verifying_key();
-        let spki_bytes = verifying_key.to_public_key_der()
-            .map_err(|e| SignerError::Crypto(format!("Failed to serialize public key: {}", e)))?;
+        let spki_bytes = verifying_key.to_encoded_point(false).as_bytes().to_vec();
 
         Ok(PublicKey {
             algorithm: self.algorithm.clone(),
-            spki_bytes: spki_bytes.as_bytes().to_vec(),
+            spki_bytes,
         })
     }
 
@@ -262,19 +265,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_ed25519_signature_verification() {
+        use ed25519_dalek::Verifier;
+
         let (signer, _pem) = SoftwareSigner::generate().unwrap();
-        
+
         let data = b"Test message";
         let signature = signer.sign(data).await.unwrap();
         let public_key = signer.public_key().await.unwrap();
-        
-        // Verify the signature
-        let verifying_key = ed25519_dalek::VerifyingKey::from_bytes(
-            &public_key.spki_bytes[public_key.spki_bytes.len() - 32..]
-        ).unwrap();
-        
-        let sig_bytes = ed25519_dalek::Signature::from_bytes(&signature.bytes).unwrap();
-        assert!(verifying_key.verify(data, &sig_bytes).is_ok());
+
+        let verifying_key_bytes: [u8; 32] = public_key.spki_bytes.as_slice().try_into().unwrap();
+        let verifying_key = ed25519_dalek::VerifyingKey::from_bytes(&verifying_key_bytes).unwrap();
+
+        let sig_bytes: [u8; 64] = signature.bytes.as_slice().try_into().unwrap();
+        let sig = ed25519_dalek::Signature::from_bytes(&sig_bytes);
+        assert!(verifying_key.verify(data, &sig).is_ok());
     }
 
     #[test]
