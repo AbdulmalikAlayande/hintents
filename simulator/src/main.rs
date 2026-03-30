@@ -3,6 +3,7 @@
 
 #![allow(warnings, clippy::all, clippy::pedantic, clippy::nursery)]
 
+mod assemblyscript_source_map;
 mod config;
 mod debug_host_fn;
 mod gas_optimizer;
