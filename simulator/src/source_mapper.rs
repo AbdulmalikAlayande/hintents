@@ -1,6 +1,7 @@
 // Copyright 2026 Erst Users
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::assemblyscript_source_map;
 use crate::git_detector::GitRepository;
 use gimli::{self, ColumnType, Dwarf, EndianSlice, Reader, RunTimeEndian, SectionId};
 use object::{Object, ObjectSection};
@@ -43,13 +44,42 @@ impl SourceMapper {
         if no_cache {
             eprintln!("--no-cache: skipping cache, re-parsing WASM symbols from scratch.");
         }
-        let has_symbols = Self::check_debug_symbols(&wasm_bytes);
+        let has_dwarf = Self::check_debug_symbols(&wasm_bytes);
         let git_repo = Self::detect_git_repository();
 
-        let line_cache = if has_symbols {
-            Self::build_line_cache(&wasm_bytes).unwrap_or_default()
+        let (has_symbols, line_cache) = if has_dwarf {
+            (
+                true,
+                Self::build_line_cache(&wasm_bytes).unwrap_or_default(),
+            )
+        } else if let Some(as_entries) =
+            assemblyscript_source_map::try_build_as_line_cache(&wasm_bytes)
+        {
+            eprintln!(
+                "AssemblyScript source map detected ({} mappings)",
+                as_entries.len()
+            );
+            let cache = as_entries
+                .iter()
+                .enumerate()
+                .map(|(i, entry)| {
+                    let next_offset = as_entries.get(i + 1).map(|e| e.wasm_offset);
+                    CachedLineEntry {
+                        start: entry.wasm_offset,
+                        end: next_offset,
+                        location: SourceLocation {
+                            file: entry.file.clone(),
+                            line: entry.line,
+                            column: entry.column,
+                            column_end: None,
+                            github_link: None,
+                        },
+                    }
+                })
+                .collect();
+            (true, cache)
         } else {
-            Vec::new()
+            (false, Vec::new())
         };
 
         Self {
