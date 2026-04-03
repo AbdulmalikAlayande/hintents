@@ -130,4 +130,6 @@ pub struct StateSnapshot {
     pub timestamp: u64,
     /// Index of the WASM instruction at which the snapshot was taken.
     pub instruction_index: u32,
+    /// Contract events emitted between the previous snapshot and this one.
+    pub events: Vec<String>,
 }
