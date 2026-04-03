@@ -10,6 +10,7 @@ mod gas_optimizer;
 mod git_detector;
 mod ipc;
 mod runner;
+mod snapshot;
 mod source_map_cache;
 mod source_mapper;
 mod stack_trace;
