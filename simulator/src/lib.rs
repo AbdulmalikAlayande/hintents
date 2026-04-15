@@ -4,9 +4,12 @@
 #![allow(clippy::pedantic, clippy::nursery, dead_code)]
 
 pub mod assemblyscript_source_map;
+pub mod context;
 pub mod gas_optimizer;
 pub mod git_detector;
+pub mod hsm;
 pub mod ipc;
+pub mod runner;
 pub mod snapshot;
 pub mod source_map_cache;
 pub mod source_mapper;

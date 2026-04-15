@@ -127,6 +127,8 @@ fn categorize_events(events: &soroban_env_host::events::Events) -> Vec<Categoriz
                     topics,
                     data,
                     in_successful_contract_call: e.failed_call,
+                    snapshot_id: None,
+                    snapshot_metadata: None,
                 },
             }
         })
@@ -381,6 +383,8 @@ fn main() {
                                     topics,
                                     data,
                                     in_successful_contract_call: event.failed_call,
+                                    snapshot_id: None,
+                                    snapshot_metadata: None,
                                 }
                             })
                             .collect();
