@@ -127,7 +127,7 @@ func assertNotContains(t *testing.T, label, haystack, needle string) {
 	}
 }
 
-func assertEmpty(t *testing.T, label, s string) {
+func assertEmpty(t *testing.T, label, s string) { //nolint:unused
 	t.Helper()
 	if strings.TrimSpace(s) != "" {
 		t.Errorf("%s: expected empty, got:\n%s", label, s)

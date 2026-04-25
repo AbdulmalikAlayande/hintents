@@ -36,7 +36,7 @@ func TestDefaultRetryConfig(t *testing.T) {
 func TestRetryerSuccessFirstAttempt(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	}))
 	defer server.Close()
 
@@ -94,11 +94,11 @@ func TestRetryerOn429ThenSuccess(t *testing.T) {
 		attempts++
 		if attempts == 1 {
 			w.WriteHeader(http.StatusTooManyRequests)
-			w.Write([]byte("rate limited"))
+			_, _ = w.Write([]byte("rate limited"))
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	}))
 	defer server.Close()
 
@@ -129,7 +129,7 @@ func TestRetryerOn429ThenSuccess(t *testing.T) {
 func TestRetryerMaxRetriesExceeded(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
-		w.Write([]byte("rate limited"))
+		_, _ = w.Write([]byte("rate limited"))
 	}))
 	defer server.Close()
 
@@ -253,7 +253,7 @@ func TestRetryerExponentialBackoff(t *testing.T) {
 func TestRetryTransportSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	}))
 	defer server.Close()
 
@@ -283,11 +283,11 @@ func TestRetryTransportRetry503(t *testing.T) {
 		attempts++
 		if attempts == 1 {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte("unavailable"))
+			_, _ = w.Write([]byte("unavailable"))
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	}))
 	defer server.Close()
 
@@ -465,7 +465,7 @@ func TestRetryerResponseTooLarge(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
 		w.WriteHeader(http.StatusRequestEntityTooLarge)
-		w.Write([]byte("response too large"))
+		_, _ = w.Write([]byte("response too large"))
 	}))
 	defer server.Close()
 
@@ -501,7 +501,7 @@ func TestRetryTransportResponseTooLarge(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
 		w.WriteHeader(http.StatusRequestEntityTooLarge)
-		w.Write([]byte("response too large"))
+		_, _ = w.Write([]byte("response too large"))
 	}))
 	defer server.Close()
 
@@ -558,7 +558,7 @@ func searchString(s, sub string) bool {
 func BenchmarkRetryerSuccess(b *testing.B) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	}))
 	defer server.Close()
 
@@ -578,7 +578,7 @@ func BenchmarkRetryerSuccess(b *testing.B) {
 func BenchmarkRetryTransport(b *testing.B) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	}))
 	defer server.Close()
 

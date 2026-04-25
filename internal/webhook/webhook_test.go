@@ -155,7 +155,7 @@ func TestWebhookSend(t *testing.T) {
 		receivedPayloads = append(receivedPayloads, payload)
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"ok":true}`))
+		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
 	defer server.Close()
 
@@ -193,11 +193,11 @@ func TestWebhookRetry(t *testing.T) {
 		attempt++
 		if attempt < 2 {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte("Service unavailable"))
+			_, _ = w.Write([]byte("Service unavailable"))
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"ok":true}`))
+		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
 	defer server.Close()
 
@@ -233,7 +233,7 @@ func TestWebhookRetry(t *testing.T) {
 func TestSimulatorNotifier(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"ok":true}`))
+		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
 	defer server.Close()
 
@@ -267,7 +267,7 @@ func TestSimulatorNotifier(t *testing.T) {
 func TestSimulatorNotifierErrorOnly(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"ok":true}`))
+		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
 	defer server.Close()
 

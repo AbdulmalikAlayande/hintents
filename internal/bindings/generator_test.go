@@ -6,7 +6,7 @@ package bindings
 import (
 	"testing"
 
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 )
 
 func TestMapTypeDefToTS(t *testing.T) {

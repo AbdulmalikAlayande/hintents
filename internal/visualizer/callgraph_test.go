@@ -4,7 +4,6 @@
 package visualizer
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/dotandev/hintents/internal/decoder"

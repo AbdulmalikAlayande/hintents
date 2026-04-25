@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 )
 
 // Severity levels for security findings

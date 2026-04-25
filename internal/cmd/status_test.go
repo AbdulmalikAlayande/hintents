@@ -158,7 +158,7 @@ func TestRepairProtocolDarwin(t *testing.T) {
 	defer os.Setenv("HOME", origHome)
 
 	// Create the LaunchAgents directory
-	os.MkdirAll(filepath.Join(tmpDir, "Library", "LaunchAgents"), 0755)
+	_ = os.MkdirAll(filepath.Join(tmpDir, "Library", "LaunchAgents"), 0755)
 
 	var buf bytes.Buffer
 	err := repairProtocolDarwin("/usr/local/bin/erst", &buf)

@@ -359,7 +359,11 @@ func FormatSuggestions(suggestions []Suggestion) string {
 			confidenceIcon = "🔴"
 		}
 
-		output.WriteString(fmt.Sprintf("%d. %s [Confidence: %s]\n", i+1, confidenceIcon, strings.Title(suggestion.Confidence)))
+		conf := suggestion.Confidence
+		if len(conf) > 0 {
+			conf = strings.ToUpper(conf[:1]) + conf[1:]
+		}
+		output.WriteString(fmt.Sprintf("%d. %s [Confidence: %s]\n", i+1, confidenceIcon, conf))
 		output.WriteString(fmt.Sprintf("   %s\n", suggestion.Description))
 		if i < len(suggestions)-1 {
 			output.WriteString("\n")

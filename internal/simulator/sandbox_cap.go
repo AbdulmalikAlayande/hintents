@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 )
 
 // SumNativePaymentsStroops returns the sum of all native (XLM) payment amounts

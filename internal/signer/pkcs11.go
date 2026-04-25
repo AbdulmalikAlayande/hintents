@@ -14,20 +14,20 @@ import (
 
 // PKCS#11 constants matching the Cryptoki specification.
 const (
-	ckfSerialSession = 0x04
-	ckuUser          = 1
+	ckfSerialSession = 0x04 //nolint:unused
+	ckuUser          = 1    //nolint:unused
 
-	ckoPrivateKey = 0x03
-	ckoPublicKey  = 0x02
+	ckoPrivateKey = 0x03 //nolint:unused
+	ckoPublicKey  = 0x02 //nolint:unused
 
-	ckaClass   = 0x00
-	ckaKeyType = 0x100
-	ckaLabel   = 0x03
-	ckaID      = 0x102
-	ckaECPoint = 0x181
+	ckaClass   = 0x00   //nolint:unused
+	ckaKeyType = 0x100  //nolint:unused
+	ckaLabel   = 0x03   //nolint:unused
+	ckaID      = 0x102  //nolint:unused
+	ckaECPoint = 0x181  //nolint:unused
 
 	ckmEDDSA = 0x1050
-	ckkEDDSA = 0x42
+	ckkEDDSA = 0x42 //nolint:unused
 
 	ckrOK = 0x00
 )
@@ -77,7 +77,7 @@ func Pkcs11ConfigFromEnv() (*Pkcs11Config, error) {
 }
 
 // pkcs11Attribute mirrors CK_ATTRIBUTE.
-type pkcs11Attribute struct {
+type pkcs11Attribute struct { //nolint:unused
 	typ    uint64
 	pValue unsafe.Pointer
 	ulLen  uint64
@@ -102,19 +102,19 @@ type Pkcs11Signer struct {
 	pubKey    []byte
 
 	// C_* function pointers resolved from the loaded library.
-	fnInitialize      func(unsafe.Pointer) uint64
-	fnFinalize        func(unsafe.Pointer) uint64
-	fnGetSlotList     func(bool, unsafe.Pointer, *uint64) uint64
-	fnGetTokenInfo    func(uint64, unsafe.Pointer) uint64
-	fnOpenSession     func(uint64, uint64, unsafe.Pointer, unsafe.Pointer, *uint64) uint64
+	fnInitialize      func(unsafe.Pointer) uint64                        //nolint:unused
+	fnGetSlotList     func(bool, unsafe.Pointer, *uint64) uint64         //nolint:unused
+	fnGetTokenInfo    func(uint64, unsafe.Pointer) uint64                //nolint:unused
+	fnOpenSession     func(uint64, uint64, unsafe.Pointer, unsafe.Pointer, *uint64) uint64 //nolint:unused
 	fnCloseSession    func(uint64) uint64
-	fnLogin           func(uint64, uint64, unsafe.Pointer, uint64) uint64
-	fnFindObjectsInit func(uint64, unsafe.Pointer, uint64) uint64
-	fnFindObjects     func(uint64, *uint64, uint64, *uint64) uint64
-	fnFindObjectsFin  func(uint64) uint64
+	fnLogin           func(uint64, uint64, unsafe.Pointer, uint64) uint64 //nolint:unused
+	fnFindObjectsInit func(uint64, unsafe.Pointer, uint64) uint64         //nolint:unused
+	fnFindObjects     func(uint64, *uint64, uint64, *uint64) uint64       //nolint:unused
+	fnFindObjectsFin  func(uint64) uint64                                 //nolint:unused
 	fnSignInit        func(uint64, unsafe.Pointer, uint64) uint64
 	fnSign            func(uint64, unsafe.Pointer, uint64, unsafe.Pointer, *uint64) uint64
-	fnGetAttrValue    func(uint64, uint64, unsafe.Pointer, uint64) uint64
+	fnGetAttrValue    func(uint64, uint64, unsafe.Pointer, uint64) uint64 //nolint:unused
+	fnFinalize        func(unsafe.Pointer) uint64
 }
 
 // NewPkcs11Signer opens a PKCS#11 session using the provided config,
@@ -253,7 +253,7 @@ func (s *Pkcs11Signer) Close() error {
 }
 
 // buildKeyTemplate constructs PKCS#11 search attributes from the config.
-func (s *Pkcs11Signer) buildKeyTemplate() ([]pkcs11Attribute, error) {
+func (s *Pkcs11Signer) buildKeyTemplate() ([]pkcs11Attribute, error) { //nolint:unused
 	classVal := uint64(ckoPrivateKey)
 	keyTypeVal := uint64(ckkEDDSA)
 

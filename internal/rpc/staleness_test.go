@@ -24,7 +24,7 @@ func TestCheckStaleness(t *testing.T) {
 			}
 			resp.Result.Sequence = 1000
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}))
 		defer sdfServer.Close()
 
@@ -36,7 +36,7 @@ func TestCheckStaleness(t *testing.T) {
 			}
 			resp.Result.Sequence = 995 // Lag of 5, below threshold 15
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}))
 		defer localServer.Close()
 
@@ -62,7 +62,7 @@ func TestCheckStaleness(t *testing.T) {
 			}
 			resp.Result.Sequence = 1234
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}))
 		defer server.Close()
 

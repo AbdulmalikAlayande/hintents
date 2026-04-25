@@ -117,6 +117,8 @@ func TestClient_GetHealth_Failover_AllNodesFailedErrorAggregation(t *testing.T) 
 		require.Contains(t, errMsg, node.url)
 		require.Contains(t, errMsg, node.msg)
 	}
+}
+
 // TestClient_Rotation_SorobanURLSync verifies that after a URL rotation both
 // HorizonURL and SorobanURL point to the newly selected node.  Before the
 // Protocol V2 standardization, rotateURL contained two dead SorobanURL

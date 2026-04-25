@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/dotandev/hintents/internal/errors"
-	hProtocol "github.com/stellar/go-stellar-sdk/protocols/horizon"
-	"github.com/stellar/go-stellar-sdk/xdr"
+	hProtocol "github.com/stellar/go/protocols/horizon"
+	"github.com/stellar/go/xdr"
 )
 
 // LedgerEntryPair represents a ledger key-entry pair for simulation

@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 )
 
 // ScValToGoValue converts an xdr.ScVal to the most natural Go representation.

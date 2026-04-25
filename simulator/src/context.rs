@@ -81,6 +81,7 @@ pub enum SimulationContextError {
     Host(#[from] SimHostError),
 }
 
+#[allow(dead_code)]
 /// Owns the active simulator host and a rewindable history of snapshots.
 pub struct SimulationContext {
     host: SimHost,
@@ -90,6 +91,7 @@ pub struct SimulationContext {
 }
 
 impl SimulationContext {
+    #[allow(dead_code)]
     pub fn new(host: SimHost) -> Self {
         Self {
             host,
@@ -99,14 +101,17 @@ impl SimulationContext {
         }
     }
 
+    #[allow(dead_code)]
     pub fn host(&self) -> &SimHost {
         &self.host
     }
 
+    #[allow(dead_code)]
     pub fn host_mut(&mut self) -> &mut SimHost {
         &mut self.host
     }
 
+    #[allow(dead_code)]
     pub fn set_ledger_entry(
         &mut self,
         key: LedgerKey,
@@ -118,6 +123,7 @@ impl SimulationContext {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn capture_snapshot(
         &mut self,
         snapshot_id: impl Into<String>,
@@ -134,6 +140,7 @@ impl SimulationContext {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn rollback_to(&mut self, snapshot_id: &str) -> Result<(), SimulationContextError> {
         self.sync_events()?;
         let snapshot = self
@@ -148,6 +155,7 @@ impl SimulationContext {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn events(&self) -> Result<Vec<HostEvent>, SimulationContextError> {
         let mut events = self.committed_events.clone();
         let host_events = self.host.event_log()?;
@@ -155,6 +163,7 @@ impl SimulationContext {
         Ok(events)
     }
 
+    #[allow(dead_code)]
     fn sync_events(&mut self) -> Result<(), SimulationContextError> {
         let host_events = self.host.event_log()?;
         if self.synced_host_event_count < host_events.len() {

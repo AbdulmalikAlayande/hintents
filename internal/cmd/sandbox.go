@@ -13,8 +13,8 @@ import (
 	"github.com/dotandev/hintents/internal/errors"
 	"github.com/dotandev/hintents/internal/rpc"
 	"github.com/spf13/cobra"
-	"github.com/stellar/go-stellar-sdk/strkey"
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/strkey"
+	"github.com/stellar/go/xdr"
 )
 
 const (

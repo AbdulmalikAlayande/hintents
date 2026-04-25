@@ -38,7 +38,7 @@ func (f RoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
 
-func (c *Client) getHTTPClient() *http.Client {
+func (c *Client) getHTTPClient() HTTPClient {
 	if c.httpClient != nil {
 		return c.httpClient
 	}
@@ -86,7 +86,7 @@ func (c *Client) postRequest(ctx context.Context, payload interface{}, result in
 	req.Header.Set("Content-Type", "application/json")
 
 	// Use the client's internal httpClient
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.getHTTPClient().Do(req)
 	if err != nil {
 		return fmt.Errorf("http request failed: %w", err)
 	}

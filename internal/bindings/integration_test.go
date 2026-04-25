@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/dotandev/hintents/internal/abi"
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 )
 
 func TestGenerateBindings(t *testing.T) {

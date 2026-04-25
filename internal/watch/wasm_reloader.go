@@ -101,7 +101,7 @@ func StartWasmReloader(ctx context.Context, cfg WasmReloaderConfig) (<-chan Relo
 				if fp.Hash != lastHash {
 					lastHash = fp.Hash
 					select {
-					case events <- ReloadEvent{Hash: fp.Hash}:
+					case events <- ReloadEvent(fp):
 					default:
 					}
 				}

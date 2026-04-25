@@ -5,12 +5,11 @@ package rpc
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
 	"github.com/dotandev/hintents/internal/errors"
-	"github.com/stellar/go-stellar-sdk/clients/horizonclient"
+	"github.com/stellar/go/clients/horizonclient"
 )
 
 type ClientOption func(*clientBuilder) error

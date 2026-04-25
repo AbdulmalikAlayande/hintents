@@ -28,7 +28,7 @@ func ColorEnabled() bool {
 }
 
 // colorMap maps color names to ANSI SGR codes.
-var colorMap = map[string]string{
+var colorMap = map[string]string{ //nolint:unused
 	"red":     sgrRed,
 	"green":   sgrGreen,
 	"yellow":  sgrYellow,

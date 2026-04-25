@@ -90,7 +90,10 @@ Example:
 			if len(executionTrace.DiagnosticEvents) == 0 {
 				return errors.WrapValidationError("no diagnostic events found in trace; call graph with gas cannot be generated")
 			}
-			callTree, err := decoder.DecodeDiagnosticEvents(executionTrace.DiagnosticEvents)
+			// Load config to get MaxTraceDepth
+			maxDepth := 50
+
+			callTree, err := decoder.DecodeDiagnosticEvents(executionTrace.DiagnosticEvents, maxDepth)
 			if err != nil {
 				return errors.WrapValidationError(fmt.Sprintf("failed to decode call tree: %v", err))
 			}

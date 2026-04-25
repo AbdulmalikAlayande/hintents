@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 )
 
 type DiagnosticEvent struct {
@@ -55,6 +55,13 @@ func (e *DiagnosticEvent) ParseTopics() ([]xdr.ScVal, error) {
 }
 
 type CategorizedEvent struct {
-	Category string          `json:"category"`
-	Event    DiagnosticEvent `json:"event"`
+	Category                 string   `json:"category"`
+	EventType                string   `json:"event_type"`
+	ContractID               *string  `json:"contract_id,omitempty"`
+	Topics                   []string `json:"topics"`
+	Data                     string   `json:"data"`
+	InSuccessfulContractCall bool     `json:"in_successful_contract_call"`
+	WasmInstruction          *string  `json:"wasm_instruction,omitempty"`
+	CPU                      *uint64  `json:"cpu,omitempty"`
+	Memory                   *uint64  `json:"memory,omitempty"`
 }

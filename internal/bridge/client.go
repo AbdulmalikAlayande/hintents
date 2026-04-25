@@ -161,6 +161,8 @@ func writeCommand(w io.Writer, cmd fetchSnapshotRequest) error {
 		return fmt.Errorf("bridge: write command to simulator stdin: %w", err)
 	}
 	return nil
+}
+
 // WithRollbackAndResume injects a rollback-and-resume control command into a
 // simulation request JSON payload.
 func WithRollbackAndResume(reqJSON []byte, rewindStep int, forkParams map[string]string, harnessReset bool) ([]byte, error) {

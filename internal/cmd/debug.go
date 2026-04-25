@@ -37,7 +37,7 @@ import (
 	"github.com/dotandev/hintents/internal/watch"
 
 	"github.com/spf13/cobra"
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -53,7 +53,6 @@ var (
 	compareNetworkFlag  string
 	verbose             bool
 	wasmPath            string
-	wasmOptimizeFlag    bool
 	args                []string
 	themeFlag           string
 	noCacheFlag         bool
@@ -73,9 +72,10 @@ var (
 	mockTimeFlag        int64
 	mockBaseFeeFlag     uint32
 	mockGasPriceFlag    uint64
-	asyncFlag           bool
-	asyncTimeoutFlag    int
 	exportSVGFlag       string
+	loadSnapshotsFlag   string
+	saveSnapshotsFlag   string
+	wasmBase64          string
 )
 
 // DebugCommand holds dependencies for the debug command
@@ -386,33 +386,36 @@ Local WASM Replay Mode:
 		// Fetch transaction details
 		if watchFlag {
 			spinner := watch.NewSpinner()
-			poller := watch.NewPoller(watch.PollerConfig{
-				InitialInterval: 1 * time.Second,
-				MaxInterval:     10 * time.Second,
-				TimeoutDuration: time.Duration(watchTimeoutFlag) * time.Second,
-			})
-
 			spinner.Start("Waiting for transaction to appear on-chain...")
+			watchCtx, cancelWatch := context.WithTimeout(ctx, time.Duration(watchTimeoutFlag)*time.Second)
+			defer cancelWatch()
 
-			result, err := poller.Poll(ctx, func(pollCtx context.Context) (interface{}, error) {
-				_, pollErr := client.GetTransaction(pollCtx, txHash)
-				if pollErr != nil {
-					return nil, pollErr
-				}
-				return true, nil
-			}, nil)
-
+			statusCh, err := client.WatchTransaction(watchCtx, txHash)
 			if err != nil {
-				spinner.StopWithError("Failed to poll for transaction")
+				spinner.StopWithError("Failed to start transaction watch")
 				return errors.WrapSimulationLogicError(fmt.Sprintf("watch mode error: %v", err))
 			}
 
-			if !result.Found {
+			var finalStatus *rpc.TxStatus
+			for status := range statusCh {
+				if status.IsFinal() {
+					statusCopy := status
+					finalStatus = &statusCopy
+					break
+				}
+			}
+
+			if err := watchCtx.Err(); err != nil {
 				spinner.StopWithError("Transaction not found within timeout")
 				return errors.WrapTransactionNotFound(fmt.Errorf("not found after %d seconds", watchTimeoutFlag))
 			}
 
-			spinner.StopWithMessage("Transaction found! Starting debug...")
+			if finalStatus == nil {
+				spinner.StopWithError("Transaction watch ended unexpectedly")
+				return errors.WrapSimulationLogicError("watch mode ended before a final transaction status was received")
+			}
+
+			spinner.StopWithMessage(fmt.Sprintf("Transaction reached %s. Starting debug...", strings.ToLower(finalStatus.Status)))
 		}
 
 		fmt.Printf("Fetching transaction: %s\n", txHash)
@@ -427,6 +430,13 @@ Local WASM Replay Mode:
 		keys, err := extractLedgerKeys(resp.ResultMetaXdr)
 		if err != nil {
 			return errors.WrapUnmarshalFailed(err, "result meta")
+		}
+
+		// Load config to get MaxTraceDepth for decoder calls
+		cfg, _ := config.Load()
+		maxDepth := 50
+		if cfg != nil {
+			maxDepth = cfg.MaxTraceDepth
 		}
 
 		// Initialize Simulator Runner
@@ -634,7 +644,7 @@ Local WASM Replay Mode:
 			lastSimResp = simResp
 
 			if exportSVGFlag != "" && simResp != nil && len(simResp.DiagnosticEvents) > 0 {
-				callTree, err := decoder.DecodeDiagnosticEvents(simResp.DiagnosticEvents)
+				callTree, err := decoder.DecodeDiagnosticEvents(simResp.DiagnosticEvents, maxDepth)
 				if err != nil {
 					fmt.Printf("%s Error building call tree for SVG: %v\n", visualizer.Symbol("error"), err)
 				} else {
@@ -670,13 +680,6 @@ Local WASM Replay Mode:
 		// Analysis: Error Suggestions (Heuristic-based)
 		if len(lastSimResp.Events) > 0 {
 			suggestionEngine := decoder.NewSuggestionEngine()
-
-			// Load config to get MaxTraceDepth
-			cfg, _ := config.Load()
-			maxDepth := 50
-			if cfg != nil {
-				maxDepth = cfg.MaxTraceDepth
-			}
 
 			// Decode events for analysis
 			callTree, err := decoder.DecodeEvents(lastSimResp.Events, maxDepth)
@@ -868,7 +871,7 @@ func runLocalWasmReplay() error {
 	if err != nil {
 		return errors.WrapValidationError(fmt.Sprintf("WASM file not found or unreadable: %s", wasmPath))
 	}
-	wasmBase64 := base64.StdEncoding.EncodeToString(wasmBytes)
+	wasmBase64 = base64.StdEncoding.EncodeToString(wasmBytes)
 
 	fmt.Printf("%s Local WASM Replay Mode\n", visualizer.Symbol("wrench"))
 	fmt.Printf("WASM File: %s\n", wasmPath)
@@ -894,19 +897,13 @@ func runLocalWasmReplay() error {
 
 func newLocalWasmSimulationRequest(forceNoCache bool) *simulator.SimulationRequest {
 	req := &simulator.SimulationRequest{
-		EnvelopeXdr:   "",  // Empty for local replay
-		ResultMetaXdr: "",  // Empty for local replay
-		LedgerEntries: nil, // Mock state will be generated
-		WasmPath:      &wasmPath,
-		NoCache:       noCacheFlag || forceNoCache,
-		MockArgs:      &args,
-		ContractWasm:  &wasmBase64, // Pass the WASM binary for source mapping
-		EnvelopeXdr:     "",  // Empty for local replay
-		ResultMetaXdr:   "",  // Empty for local replay
+		EnvelopeXdr:     "", // Empty for local replay
+		ResultMetaXdr:   "", // Empty for local replay
 		LedgerEntries:   nil, // Mock state will be generated
 		WasmPath:        &wasmPath,
 		NoCache:         noCacheFlag || forceNoCache,
 		MockArgs:        &args,
+		ContractWasm:    &wasmBase64, // Pass the WASM binary for source mapping
 		EnableSnapshots: snapshotsFlag,
 	}
 	applySimulationFeeMocks(req)
@@ -1510,7 +1507,8 @@ func init() {
 	debugCmd.Flags().Int64Var(&mockTimeFlag, "mock-time", 0, "Override ledger timestamp for simulation (Unix seconds)")
 	debugCmd.Flags().Uint32Var(&protocolVersionFlag, "protocol-version", 0, "Override protocol version for simulation")
 	debugCmd.Flags().StringVar(&exportSVGFlag, "export-svg", "", "Export call graph as SVG to specified file")
-
+	debugCmd.Flags().StringVar(&loadSnapshotsFlag, "load-snapshots", "", "Load simulation from a snapshot registry")
+	debugCmd.Flags().StringVar(&saveSnapshotsFlag, "save-snapshots", "", "Save simulation results to a snapshot registry")
 	rootCmd.AddCommand(debugCmd)
 }
 
@@ -1638,39 +1636,3 @@ func displaySourceLocation(loc *simulator.SourceLocation) {
 	fmt.Println()
 }
 
-func applySimulationFeeMocks(req *simulator.SimulationRequest) {
-	if mockBaseFeeFlag > 0 {
-		baseFee := mockBaseFeeFlag
-		req.MockBaseFee = &baseFee
-	}
-	if mockGasPriceFlag > 0 {
-		gas := mockGasPriceFlag
-		req.MockGasPrice = &gas
-	}
-}
-
-var deprecatedHostFuncs = []string{
-	"vec_unpack_to_linear_memory",
-	"bytes_copy_to_linear_memory",
-}
-
-func findDeprecatedHostFunction(event string) (string, bool) {
-	for _, fn := range deprecatedHostFuncs {
-		if strings.Contains(event, "Symbol(\""+fn+"\")") {
-			return fn, true
-		}
-	}
-	return "", false
-}
-
-func deprecatedHostFunctionInDiagnosticEvent(event simulator.DiagnosticEvent) (string, bool) {
-	if name, ok := findDeprecatedHostFunction(event.Data); ok {
-		return name, ok
-	}
-	for _, topic := range event.Topics {
-		if name, ok := findDeprecatedHostFunction(topic); ok {
-			return name, ok
-		}
-	}
-	return "", false
-}

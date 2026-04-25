@@ -14,7 +14,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 )
 
 func TestLedgerKeyForContractInstance(t *testing.T) {

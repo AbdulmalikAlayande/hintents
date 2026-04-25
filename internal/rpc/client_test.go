@@ -6,19 +6,22 @@ package rpc
 import (
 	"context"
 	stdErrors "errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/dotandev/hintents/internal/errors"
-	"github.com/stellar/go-stellar-sdk/clients/horizonclient"
-	hProtocol "github.com/stellar/go-stellar-sdk/protocols/horizon"
-	effects "github.com/stellar/go-stellar-sdk/protocols/horizon/effects"
-	operations "github.com/stellar/go-stellar-sdk/protocols/horizon/operations"
-	"github.com/stellar/go-stellar-sdk/support/render/problem"
-	"github.com/stellar/go-stellar-sdk/txnbuild"
+	"github.com/stellar/go/clients/horizonclient"
+	hProtocol "github.com/stellar/go/protocols/horizon"
+	effects "github.com/stellar/go/protocols/horizon/effects"
+	operations "github.com/stellar/go/protocols/horizon/operations"
+	"github.com/stellar/go/support/render/problem"
+	"github.com/stellar/go/txnbuild"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -326,7 +329,7 @@ func TestGetLedgerEntries_WithVerification(t *testing.T) {
 func TestGetLedgerEntries_ResponseTooLarge(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusRequestEntityTooLarge)
-		w.Write([]byte("response too large"))
+		_, _ = w.Write([]byte("response too large"))
 	}))
 	defer server.Close()
 
@@ -346,7 +349,7 @@ func TestGetLedgerEntries_ResponseTooLarge(t *testing.T) {
 func TestSimulateTransaction_ResponseTooLarge(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusRequestEntityTooLarge)
-		w.Write([]byte("response too large"))
+		_, _ = w.Write([]byte("response too large"))
 	}))
 	defer server.Close()
 
@@ -381,11 +384,12 @@ func TestWithRequestTimeout_DefaultIs15s(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.httpClient == nil {
-		t.Fatal("expected non-nil httpClient")
+	httpClient, ok := client.httpClient.(*http.Client)
+	if !ok {
+		t.Fatal("expected *http.Client from default NewClient")
 	}
-	if client.httpClient.Timeout != 15*time.Second {
-		t.Errorf("expected default timeout 15s, got %v", client.httpClient.Timeout)
+	if httpClient.Timeout != 15*time.Second {
+		t.Errorf("expected default timeout 15s, got %v", httpClient.Timeout)
 	}
 }
 
@@ -394,8 +398,12 @@ func TestWithRequestTimeout_CustomValue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.httpClient.Timeout != 30*time.Second {
-		t.Errorf("expected timeout 30s, got %v", client.httpClient.Timeout)
+	httpClient, ok := client.httpClient.(*http.Client)
+	if !ok {
+		t.Fatal("expected *http.Client")
+	}
+	if httpClient.Timeout != 30*time.Second {
+		t.Errorf("expected timeout 30s, got %v", httpClient.Timeout)
 	}
 }
 
@@ -404,8 +412,12 @@ func TestWithRequestTimeout_Zero(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.httpClient.Timeout != 0 {
-		t.Errorf("expected timeout 0 (disabled), got %v", client.httpClient.Timeout)
+	httpClient, ok := client.httpClient.(*http.Client)
+	if !ok {
+		t.Fatal("expected *http.Client")
+	}
+	if httpClient.Timeout != 0 {
+		t.Errorf("expected timeout 0 (disabled), got %v", httpClient.Timeout)
 	}
 }
 
@@ -414,8 +426,12 @@ func TestWithRequestTimeout_SlowConnectionValue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.httpClient.Timeout != 60*time.Second {
-		t.Errorf("expected timeout 60s, got %v", client.httpClient.Timeout)
+	httpClient, ok := client.httpClient.(*http.Client)
+	if !ok {
+		t.Fatal("expected *http.Client")
+	}
+	if httpClient.Timeout != 60*time.Second {
+		t.Errorf("expected timeout 60s, got %v", httpClient.Timeout)
 	}
 }
 
@@ -472,4 +488,16 @@ type mockHTTPClient struct {
 func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	m.called = true
 	return m.DoFunc(req)
+}
+
+func (m *mockHTTPClient) Get(url string) (*http.Response, error) {
+	return nil, fmt.Errorf("Get not implemented in mockHTTPClient")
+}
+
+func (m *mockHTTPClient) Post(url, contentType string, body io.Reader) (*http.Response, error) {
+	return nil, fmt.Errorf("Post not implemented in mockHTTPClient")
+}
+
+func (m *mockHTTPClient) PostForm(url string, data url.Values) (*http.Response, error) {
+	return nil, fmt.Errorf("PostForm not implemented in mockHTTPClient")
 }

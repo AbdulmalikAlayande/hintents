@@ -26,7 +26,6 @@ use crate::types::*;
 use base64::Engine as _;
 use soroban_env_host::xdr::{ReadXdr, WriteXdr};
 use soroban_env_host::{
-    events::{Events, HostEvent},
     xdr::{Operation, OperationBody},
     Host, HostError,
 };
@@ -527,8 +526,6 @@ fn main() {
         }
     }
     // --- END: Local WASM Loading Integration ---
-
-    let mut loaded_entries_count = 0;
 
     // Populate Host Storage
     // Populate Host Storage — resolve ledger entries (plain or zstd-compressed).

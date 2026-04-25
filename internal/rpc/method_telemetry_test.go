@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	hProtocol "github.com/stellar/go-stellar-sdk/protocols/horizon"
+	hProtocol "github.com/stellar/go/protocols/horizon"
 )
 
 type telemetryCall struct {
@@ -113,7 +113,7 @@ func TestSimulateTransaction_ReportsMethodTelemetryOnError(t *testing.T) {
 	rec := &recordingMethodTelemetry{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusRequestEntityTooLarge)
-		w.Write([]byte("too large"))
+		_, _ = w.Write([]byte("too large"))
 	}))
 	defer server.Close()
 

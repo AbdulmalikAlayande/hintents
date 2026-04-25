@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stellar/go-stellar-sdk/clients/horizonclient"
+	"github.com/stellar/go/clients/horizonclient"
 )
 
 func TestWithNetwork(t *testing.T) {
@@ -310,13 +310,13 @@ func TestDeprecatedNewClientWithURLs(t *testing.T) {
 
 func BenchmarkNewClient(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		NewClient(WithNetwork(Testnet), WithToken("token"))
+		_, _ = NewClient(WithNetwork(Testnet), WithToken("token"))
 	}
 }
 
 func BenchmarkNewClientWithMultipleOptions(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		NewClient(
+		_, _ = NewClient(
 			WithNetwork(Testnet),
 			WithToken("token"),
 			WithHorizonURL(TestnetHorizonURL),
@@ -328,6 +328,6 @@ func BenchmarkNewClientWithMultipleOptions(b *testing.B) {
 
 func BenchmarkNewCustomClient(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		NewCustomClient(TestnetConfig)
+		_, _ = NewCustomClient(TestnetConfig)
 	}
 }

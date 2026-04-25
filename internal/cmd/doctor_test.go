@@ -139,7 +139,7 @@ func TestGoVersionMismatch(t *testing.T) {
 		if err != nil {
 			os.Remove("go.mod")
 		} else {
-			os.WriteFile("go.mod", orig, 0644)
+			_ = os.WriteFile("go.mod", orig, 0644)
 		}
 	}()
 	_ = os.WriteFile("go.mod", []byte("module foo\n\ngo 9.99\n"), 0644)
@@ -158,14 +158,14 @@ func TestCheckConfigTOML(t *testing.T) {
 	}
 
 	// valid config
-	os.WriteFile(".erst.toml", []byte("rpc_url = \"https://example.com\"\n"), 0644)
+	_ = os.WriteFile(".erst.toml", []byte("rpc_url = \"https://example.com\"\n"), 0644)
 	dep = checkConfigTOML(false)
 	if !dep.Installed {
 		t.Error("expected valid toml to succeed")
 	}
 
 	// invalid syntax
-	os.WriteFile(".erst.toml", []byte("rpc_url = \n"), 0644)
+	_ = os.WriteFile(".erst.toml", []byte("rpc_url = \n"), 0644)
 	dep = checkConfigTOML(true)
 	if dep.Installed {
 		t.Error("expected invalid toml to fail")

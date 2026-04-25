@@ -3,6 +3,14 @@
 
 package types
 
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/cespare/xxhash/v2"
+	"github.com/dotandev/hintents/internal/snapshot"
+)
+
 // StateSnapshot mirrors the Rust simulator snapshot payload.
 // Field order is kept consistent with the Rust struct for serde/bincode parity.
 type StateSnapshot struct {
@@ -17,13 +25,7 @@ type LedgerDelta struct {
 	NewKeys      []string `json:"new_keys"`
 	ModifiedKeys []string `json:"modified_keys"`
 	DeletedKeys  []string `json:"deleted_keys"`
-import (
-	"encoding/json"
-	"fmt"
-
-	"github.com/cespare/xxhash/v2"
-	"github.com/dotandev/hintents/internal/snapshot"
-)
+}
 
 // Fingerprint returns a 64-bit xxHash digest of the canonical serialization of
 // snap's ledger entries and linear memory.

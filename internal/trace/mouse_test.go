@@ -25,7 +25,7 @@ func TestMouseTracker_Enable(t *testing.T) {
 
 func TestMouseTracker_Disable(t *testing.T) {
 	mt := NewMouseTracker()
-	mt.Enable()
+	_ = mt.Enable()
 	assert.True(t, mt.enabled)
 
 	err := mt.Disable()

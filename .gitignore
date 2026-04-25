@@ -23,6 +23,9 @@ Thumbs.db
 *.bak
 *.swp
 simulator/check_output.txt
+test_results.txt
+test_output.txt
+.!*
 
 # --- Go specific ---
 /vendor/
@@ -40,6 +43,14 @@ create_phase9.py
 .vscode/
 
 ishus.py
+# Temporary docs/notes
+*_SUMMARY.md
+PR_MESSAGE*.md
+IMPLEMENTATION_*.md
+DELIVERY_COMPLETE.md
+CHECKLIST.md
+MAINTAINER_NEXT_STEPS.md
+XDR_GENERATOR_PR_SUMMARY.md
 
 node_modules
 out
@@ -54,6 +65,7 @@ lishus.md
 PR_30*
 commit_309*.next
 *.py
+!emojis.py
 *.json
 !package.json
 !package-lock.json

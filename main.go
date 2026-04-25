@@ -5,10 +5,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"runtime/debug"
 
@@ -26,6 +24,7 @@ var (
 
 // ─── Example RPC handler ──────────────────────────────────────────────────────
 
+/*
 func rpcHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -39,6 +38,7 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "ok")
 }
+*/
 
 func main() {
 	ctx := context.Background()

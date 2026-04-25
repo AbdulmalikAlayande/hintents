@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -103,7 +103,7 @@ func TestGetLedgerEntries_FiveKeys(t *testing.T) {
 		resp.Result.LatestLedger = 12345
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -168,7 +168,7 @@ func TestGetLedgerEntries_LargeBatch(t *testing.T) {
 		resp.Result.LatestLedger = 12345
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -240,7 +240,7 @@ func TestGetLedgerEntries_ConcurrentBatches(t *testing.T) {
 		resp.Result.LatestLedger = 12345
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -342,7 +342,7 @@ func TestGetLedgerEntries_ErrorHandling(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -443,7 +443,7 @@ func TestGetLedgerEntries_PartialFailure(t *testing.T) {
 				Message: "Internal error",
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 
@@ -468,7 +468,7 @@ func TestGetLedgerEntries_PartialFailure(t *testing.T) {
 		resp.Result.LatestLedger = 12345
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 

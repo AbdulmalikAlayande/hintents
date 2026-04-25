@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/dotandev/hintents/internal/abi"
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 )
 
 // GeneratorConfig holds configuration for TypeScript bindings generation

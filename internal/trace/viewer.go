@@ -246,10 +246,10 @@ func (v *InteractiveViewer) handleCommand(command string) bool {
 		}
 	case "?", "h", "help":
 		v.showHelp()
-	case "q", "quit", "exit":
+	case "quit", "exit":
 		fmt.Printf("Goodbye! %s\n", visualizer.Symbol("wave"))
 		return true
-	case "0", "rewind":
+	case "rewind":
 		v.rewindToStart()
 	case "y", "yank", "copy":
 		if len(parts) > 1 {

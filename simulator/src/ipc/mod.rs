@@ -31,6 +31,7 @@ pub struct StreamFrame {
     pub data: serde_json::Value,
 }
 
+#[allow(dead_code)]
 /// Control commands accepted from the Go bridge in SimulationRequest payloads.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -66,11 +67,13 @@ pub fn emit_final_frame(seq: u32, data: serde_json::Value) {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[allow(dead_code)]
 pub enum CommandOpcode {
     FetchSnapshot,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CommandFrame {
     pub op: CommandOpcode,
     pub id: u32,
@@ -78,6 +81,7 @@ pub struct CommandFrame {
     pub batch_size: u32,
 }
 
+#[allow(dead_code)]
 fn default_batch_size() -> u32 { 1 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -100,17 +104,21 @@ struct FetchResponseData {
 }
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct SnapshotRegistry {
     entries: HashMap<u32, serde_json::Value>,
 }
 
 impl SnapshotRegistry {
+    #[allow(dead_code)]
     pub fn new() -> Self { Self::default() }
 
+    #[allow(dead_code)]
     pub fn insert(&mut self, seq: u32, data: serde_json::Value) {
         self.entries.insert(seq, data);
     }
 
+    #[allow(dead_code)]
     pub fn fetch(&self, id: u32, batch_size: u32) -> Vec<SnapshotEntry> {
         let count = batch_size.clamp(1, 5);
         (id..id.saturating_add(count))
@@ -121,6 +129,7 @@ impl SnapshotRegistry {
     }
 }
 
+#[allow(dead_code)]
 pub fn handle_stdin_command(registry: &SnapshotRegistry) {
     use std::io::BufRead;
     let stdin = std::io::stdin();

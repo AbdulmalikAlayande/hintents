@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/dotandev/hintents/internal/logger"
-	"github.com/stellar/go-stellar-sdk/clients/horizonclient"
+	"github.com/stellar/go/clients/horizonclient"
 )
 
 // NodeFailure records a failure for a specific RPC URL
@@ -117,7 +117,6 @@ func (c *Client) rotateURL() bool {
 
 	currentURL := c.AltURLs[c.currIndex]
 
-	// Build list of healthy candidates excluding current URL.
 	// Build candidate list excluding current URL.
 	candidates := make([]string, 0, len(c.AltURLs)-1)
 	for _, url := range c.AltURLs {
@@ -126,47 +125,33 @@ func (c *Client) rotateURL() bool {
 		}
 	}
 
-	// If we have health telemetry, prefer the healthiest candidate.
-	if len(candidates) > 0 && c.healthCollector != nil {
-		bestURL := c.healthCollector.GetHealthiestURL(candidates)
-		if bestURL != "" {
+	// If we have candidates, try to find the healthiest.
+	if len(candidates) > 0 {
+		if c.healthCollector != nil {
+			bestURL := c.healthCollector.GetHealthiestURL(candidates)
+			if bestURL != "" {
+				for i, url := range c.AltURLs {
+					if url == bestURL {
+						c.currIndex = i
+						break
+					}
+				}
+			} else {
+				// Round-robin among candidates if no "best" found
+				c.currIndex = (c.currIndex + 1) % len(c.AltURLs)
+			}
+		} else {
+			// No health collector, pick first healthy candidate
 			for i, url := range c.AltURLs {
-				if url == bestURL {
+				if url == candidates[0] {
 					c.currIndex = i
 					break
 				}
 			}
-		} else {
-			c.currIndex = (c.currIndex + 1) % len(c.AltURLs)
 		}
 	} else {
-		// Fall back to round-robin, preferring healthy endpoints when possible.
-		for i := 0; i < len(c.AltURLs); i++ {
+		// No healthy candidate is available, fall back to simple round-robin.
 		c.currIndex = (c.currIndex + 1) % len(c.AltURLs)
-		url := c.AltURLs[c.currIndex]
-		if c.isHealthyLocked(url) {
-			break
-		}
-	}
-
-	// If no healthy candidate is available, fall back to simple round-robin.
-	if len(candidates) == 0 {
-		c.currIndex = (c.currIndex + 1) % len(c.AltURLs)
-	} else if c.healthCollector != nil {
-		bestURL := c.healthCollector.GetHealthiestURL(candidates)
-		if bestURL != "" {
-			for i, url := range c.AltURLs {
-				if url == bestURL {
-					c.currIndex = i
-					break
-				}
-			}
-		} else {
-			c.currIndex = (c.currIndex + 1) % len(c.AltURLs)
-		}
-	} else {
-		c.currIndex = (c.currIndex + 1) % len(c.AltURLs)
-	}
 	}
 
 	c.HorizonURL = c.AltURLs[c.currIndex]
@@ -174,18 +159,13 @@ func (c *Client) rotateURL() bool {
 	// calls reflect the failover.
 	c.SorobanURL = c.HorizonURL
 
-	httpClient := c.httpClient
-	if httpClient == nil {
-		httpClient = createHTTPClient(c.token, defaultHTTPTimeout, c.middlewares...)
-	}
-
+	// Update Horizon client with new URL and existing HTTP client (as HTTPClient interface)
 	c.Horizon = &horizonclient.Client{
 		HorizonURL: c.HorizonURL,
-		HTTP:       httpClient,
+		HTTP:       c.getHTTPClient(),
 	}
 
 	logger.Logger.Warn("RPC failover triggered", "new_url", c.HorizonURL)
-	// increment counter under the same lock so readers get a consistent view
 	c.rotateCount++
 	return true
 }

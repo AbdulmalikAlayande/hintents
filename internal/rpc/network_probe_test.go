@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	hProtocol "github.com/stellar/go-stellar-sdk/protocols/horizon"
+	hProtocol "github.com/stellar/go/protocols/horizon"
 	"github.com/stretchr/testify/assert"
 )
 

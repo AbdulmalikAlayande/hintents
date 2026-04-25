@@ -11,14 +11,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// TestVerifyLedgerEntryHash_ValidKey verifies that hash verification succeeds
-// when sent and received keys are identical (happy path).
-func TestVerifyLedgerEntryHash_ValidKey(t *testing.T) {
+// createTestLedgerData builds a deterministic, unique base64-encoded ContractData
+// ledger key and entry from the given seed.
+func createTestLedgerData(t *testing.T, seed int) (string, string) {
 	// Create a valid LedgerKey for a contract data entry
 	contractID := xdr.ContractId([32]byte{
 		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,

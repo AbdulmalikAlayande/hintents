@@ -160,7 +160,7 @@ func TestPollWithAttemptCallback(t *testing.T) {
 		attempts = append(attempts, attempt)
 	}
 
-	poller.Poll(context.Background(), checkFunc, onAttempt)
+	_, _ = poller.Poll(context.Background(), checkFunc, onAttempt)
 
 	if len(attempts) != 5 {
 		t.Errorf("expected 5 attempts, got %d", len(attempts))
@@ -251,6 +251,6 @@ func BenchmarkPoller(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		poller.Poll(context.Background(), checkFunc, nil)
+		_, _ = poller.Poll(context.Background(), checkFunc, nil)
 	}
 }

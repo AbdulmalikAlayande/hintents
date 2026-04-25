@@ -24,8 +24,6 @@ type SimulationRequest struct {
 	EnableCoverage              bool              `json:"enable_coverage,omitempty"`
 	CoverageLCOVPath            *string           `json:"coverage_lcov_path,omitempty"`
 	EnableOptimizationAdvisor   bool              `json:"enable_optimization_advisor,omitempty"`
-	EnableCoverage   bool              `json:"enable_coverage,omitempty"`
-	CoverageLCOVPath *string           `json:"coverage_lcov_path,omitempty"`
 	EnableSnapshots  bool              `json:"enable_snapshots"`
 	RestorePreamble map[string]interface{} `json:"restore_preamble,omitempty"`
 	AuthTraceOpts       *AuthTraceOptions      `json:"auth_trace_opts,omitempty"`

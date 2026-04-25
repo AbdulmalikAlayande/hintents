@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/dotandev/hintents/internal/simulator"
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 )
 
 // CallNode represents a node in the execution call tree
@@ -36,7 +36,7 @@ type DecodedEvent struct {
 
 // DecodeEvents builds a call hierarchy from a list of base64-encoded XDR DiagnosticEvents.
 // Deprecated: use DecodeDiagnosticEvents instead for gas-aware traces.
-func DecodeEvents(eventsXdr []string) (*CallNode, error) {
+func DecodeEvents(eventsXdr []string, maxDepth int) (*CallNode, error) {
 	var diagEvents []simulator.DiagnosticEvent
 	for _, eventStr := range eventsXdr {
 		var diag xdr.DiagnosticEvent
@@ -68,16 +68,17 @@ func DecodeEvents(eventsXdr []string) (*CallNode, error) {
 		diagEvents = append(diagEvents, decoded)
 	}
 
-	return DecodeDiagnosticEvents(diagEvents)
+	return DecodeDiagnosticEvents(diagEvents, maxDepth)
 }
 
 // DecodeDiagnosticEvents builds a call hierarchy from a list of decoded simulator DiagnosticEvents
-func DecodeDiagnosticEvents(events []simulator.DiagnosticEvent) (*CallNode, error) {
+func DecodeDiagnosticEvents(events []simulator.DiagnosticEvent, maxDepth int) (*CallNode, error) {
 	root := &CallNode{
 		ContractID: "ROOT",
 		Function:   "TOP_LEVEL",
 	}
 	current := root
+	currentDepth := 0
 
 	for _, event := range events {
 		decoded := DecodedEvent{
@@ -128,6 +129,7 @@ func DecodeDiagnosticEvents(events []simulator.DiagnosticEvent) (*CallNode, erro
 			}
 			current.SubCalls = append(current.SubCalls, child)
 			current = child
+			currentDepth++
 			current.Events = append(current.Events, decoded)
 		} else if isFunctionReturn(decoded) {
 			if maxDepth > 0 && currentDepth >= maxDepth {
@@ -167,6 +169,7 @@ func DecodeDiagnosticEvents(events []simulator.DiagnosticEvent) (*CallNode, erro
 			current.Events = append(current.Events, decoded)
 			if current.parent != nil {
 				current = current.parent
+				currentDepth--
 			}
 		} else {
 			current.Events = append(current.Events, decoded)

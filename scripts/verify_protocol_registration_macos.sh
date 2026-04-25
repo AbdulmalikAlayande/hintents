@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) Hintents Authors.
+# SPDX-License-Identifier: Apache-2.0
+
 set -euo pipefail
 
 app_path="${HOME}/Applications/Erst Protocol.app"

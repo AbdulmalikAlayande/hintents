@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/stellar/go-stellar-sdk/xdr"
+	"github.com/stellar/go/xdr"
 )
 
 // FormatText returns a human-readable text representation of the contract spec.
