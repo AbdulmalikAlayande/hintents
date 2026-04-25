@@ -3,7 +3,7 @@
 
 #![allow(clippy::pedantic, clippy::nursery, dead_code)]
 
-pub mod context;
+pub mod assemblyscript_source_map;
 pub mod gas_optimizer;
 pub mod git_detector;
 pub mod hsm;
